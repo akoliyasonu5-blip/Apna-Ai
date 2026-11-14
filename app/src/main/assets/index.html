@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#111827"><title>Apna AI</title>
+<style>
+:root{color-scheme:dark;--bg:#111827;--panel:#1f2937;--line:#374151;--text:#f9fafb;--muted:#9ca3af;--accent:#7c3aed}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,-apple-system,sans-serif;height:100dvh;display:flex;flex-direction:column}
+header{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--line);background:#151e2e}
+.brand{display:flex;align-items:center;gap:10px;font-weight:750;font-size:19px}.logo{width:35px;height:35px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#2563eb);display:grid;place-items:center;font-size:19px}
+.actions{display:flex;gap:8px}button{border:0;border-radius:12px;padding:10px 13px;background:var(--panel);color:var(--text);font-weight:600;cursor:pointer}button.primary{background:var(--accent)}button:disabled{opacity:.5}
+#chat{flex:1;overflow:auto;padding:18px 14px 24px;display:flex;flex-direction:column;gap:15px}
+.welcome{margin:auto;max-width:440px;text-align:center;padding:24px 10px}.welcome .big{font-size:42px}.welcome h1{font-size:26px;margin:10px 0}.welcome p{color:var(--muted);line-height:1.5}
+.msg{max-width:850px;width:100%;margin:0 auto;display:flex;gap:10px;align-items:flex-start}.avatar{flex:none;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#303b50}.bubble{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;padding:3px 0;flex:1}.user .avatar{background:#4c1d95}
+.composer-wrap{padding:10px 12px max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#151e2e}.composer{max-width:850px;margin:auto;display:flex;gap:8px;align-items:flex-end;background:var(--panel);border:1px solid #4b5563;border-radius:17px;padding:8px}
+textarea{flex:1;resize:none;max-height:130px;min-height:42px;background:transparent;border:0;outline:0;color:var(--text);font:inherit;padding:9px 5px}
+.hint{text-align:center;color:var(--muted);font-size:11px;margin-top:7px}
+#status{color:var(--muted);font-size:13px;text-align:center;min-height:18px}
+.overlay{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:20px}.dialog{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.dialog h2{margin:0 0 8px}.dialog p{color:var(--muted);font-size:14px;line-height:1.5}input{width:100%;padding:13px;border-radius:10px;border:1px solid #4b5563;background:#111827;color:white;margin:8px 0 12px;font-size:15px}.dialog .row{display:flex;gap:8px;justify-content:flex-end}
+@media(min-width:700px){#chat{padding:24px}.composer-wrap{padding-left:24px;padding-right:24px}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="logo">✦</div><span>Apna AI</span></div><div class="actions"><button id="newChat">New chat</button><button id="settings">⚙</button></div></header>
+<main id="chat"><section class="welcome" id="welcome"><div class="big">✦</div><h1>नमस्ते! मैं Apna AI हूँ</h1><p>आप मुझसे कुछ भी पूछ सकते हैं। पढ़ाई, लेखन, आइडिया और रोज़मर्रा के सवालों में मैं आपकी मदद करूँगा।</p></section></main>
+<div class="composer-wrap"><div id="status"></div><div class="composer"><textarea id="prompt" rows="1" placeholder="Apna AI से कुछ पूछें..."></textarea><button class="primary" id="send">भेजें ➤</button></div><div class="hint">Apna AI गलतियाँ कर सकता है। ज़रूरी जानकारी जाँच लें।</div></div>
+<div class="overlay" id="keyDialog"><div class="dialog"><h2>Gemini API Key</h2><p>अपनी Gemini API key यहाँ डालें। यह केवल इसी डिवाइस में सेव होगी। इसे किसी के साथ साझा न करें।</p><input id="apiKey" type="password" placeholder="अपनी API key डालें"><div class="row"><button id="cancelKey">रद्द करें</button><button class="primary" id="saveKey">सेव करें</button></div></div></div>
+<script>
+const chat=document.getElementById('chat'),promptBox=document.getElementById('prompt'),send=document.getElementById('send'),statusBox=document.getElementById('status'),dialog=document.getElementById('keyDialog'),keyInput=document.getElementById('apiKey');
+let history=[];
+function showKey(){keyInput.value=localStorage.getItem('apna_gemini_key')||'';dialog.style.display='flex'}
+function addMessage(role,text){const welcome=document.getElementById('welcome');if(welcome)welcome.remove();const row=document.createElement('div');row.className='msg '+(role==='user'?'user':'assistant');const av=document.createElement('div');av.className='avatar';av.textContent=role==='user'?'आप':'✦';const b=document.createElement('div');b.className='bubble';b.textContent=text;row.append(av,b);chat.append(row);chat.scrollTop=chat.scrollHeight;return b}
+async function ask(){const text=promptBox.value.trim();if(!text||send.disabled)return;if(!localStorage.getItem('apna_gemini_key')){showKey();return}promptBox.value='';promptBox.style.height='auto';addMessage('user',text);history.push({role:'user',parts:[{text}]});send.disabled=true;statusBox.textContent='Apna AI जवाब तैयार कर रहा है…';const answer=addMessage('assistant','');
+try{const key=localStorage.getItem('apna_gemini_key');const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:history,generationConfig:{temperature:0.7,maxOutputTokens:2048}})});const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'API अनुरोध पूरा नहीं हुआ');const reply=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'माफ़ कीजिए, जवाब नहीं मिला।';answer.textContent=reply;history.push({role:'model',parts:[{text:reply}]});}catch(e){answer.textContent='त्रुटि: '+e.message+'\nअपनी API key और इंटरनेट कनेक्शन जाँचें।';history.pop()}finally{send.disabled=false;statusBox.textContent='';chat.scrollTop=chat.scrollHeight}}
+send.addEventListener('click',ask);promptBox.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask()}});promptBox.addEventListener('input',()=>{promptBox.style.height='auto';promptBox.style.height=Math.min(promptBox.scrollHeight,130)+'px'});
+document.getElementById('settings').onclick=showKey;document.getElementById('saveKey').onclick=()=>{const k=keyInput.value.trim();if(!k){alert('कृपया API key डालें');return}localStorage.setItem('apna_gemini_key',k);dialog.style.display='none'};document.getElementById('cancelKey').onclick=()=>dialog.style.display='none';
+document.getElementById('newChat').onclick=()=>{history=[];chat.innerHTML='<section class="welcome" id="welcome"><div class="big">✦</div><h1>नमस्ते! मैं Apna AI हूँ</h1><p>आप मुझसे कुछ भी पूछ सकते हैं।</p></section>';promptBox.focus()};
+if(!localStorage.getItem('apna_gemini_key'))setTimeout(showKey,500);
+</script>
+</body></html>
